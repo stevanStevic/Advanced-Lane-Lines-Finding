@@ -85,7 +85,7 @@ The code for my perspective transform includes a function called `perspective_tr
 
 ```python
 cols, rows = combined.shape[::-1]
-top_limit = rows * 0.63
+top_limit = np.int(rows * 0.635)
 down_limit = rows - 20
 src_point1 = [280, down_limit]
 src_point2 = [595, top_limit]
@@ -102,12 +102,17 @@ dst = np.float32([dst_point1, dst_point2, dst_point3, dst_point4])
 
 This resulted in the following source and destination points:
 
+280.   700.]
+ [  590.   457.]
+ [  725.   457.]
+ [ 1125.   700
+
 | Source        | Destination   | 
 |:-------------:|:-------------:| 
-| , 460      | 320, 0        | 
-| 203, 720      | 320, 720      |
-| 1127, 720     | 960, 720      |
-| 695, 460      | 960, 0        |
+| 280, 700      | 200, 0        | 
+| 590, 457      | 200, 720      |
+| 725, 457      | 1200, 720     |
+| 1125, 700     | 1000, 0       |
 
 I verified that my perspective transform was working as expected by drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image.
 
@@ -119,7 +124,16 @@ Then I did some other stuff and fit my lane lines with a 2nd order polynomial ki
 
 ![alt text][image5]
 
-#### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
+#### 5. Calucalate lane radius (curvature).
+
+This involves measuring how long and wide the section of lane is that we're projecting in our warped image. We could do this in detail by measuring out the physical lane in the field of view of the camera, but for this project, you can assume that if you're projecting a section of lane similar to the images above, the lane is about 30 meters long and 3.7 meters wide. Or, if you prefer to derive a conversion from pixel space to world space in your own images, compare your images with U.S. regulations that require a minimum lane width of 12 feet or 3.7 meters, and the dashed lane lines are 10 feet or 3 meters long each.
+
+Let's say that our camera image has 720 relevant pixels in the y-dimension (remember, our image is perspective-transformed!), and we'll say roughly 700 relevant pixels in the x-dimension (our example of fake generated data above used from 200 pixels on the left to 900 on the right, or 700). Therefore, to convert from pixels to real-world meter measurements, we can use:
+
+Define conversions in x and y from pixels space to meters:
+ym_per_pix = 30/720 # meters per pixel in y dimension
+xm_per_pix = 3.7/700 # meters per pixel in x dimension
+
 
 I did this in lines # through # in my code in `my_other_file.py`
 
