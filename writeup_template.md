@@ -1,4 +1,4 @@
-## Writeup Template
+## Advanced Lane Line Findings
 
 ### You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.
 
@@ -19,8 +19,11 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 
-[image1]: ./examples/undistort_output.png "Undistorted"
-[image2]: ./test_images/test1.jpg "Road Transformed"
+[image1]: ./examples/camera_calibration.png "Undistorted"
+[image2]: ./examples/undistored_img.png "Road Transformed"
+[image7]: ./examples/sobel.png "Sobel gradients"
+[image8]: ./examples/s_threshold.png "S channel masking"
+[image9]: ./examples/combined_threshold.png "Combined threshold"
 [image3]: ./examples/binary_combo_example.jpg "Binary Example"
 [image4]: ./examples/warped_straight_lines.jpg "Warp Example"
 [image5]: ./examples/color_fit_lines.jpg "Fit Visual"
@@ -43,49 +46,65 @@ You're reading it!
 
 #### 1. Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.
 
-The code for this step is contained in the first code cell of the IPython notebook located in "./examples/example.ipynb" (or in lines # through # of the file called `some_file.py`).  
+The code for this step is contained in the IPython notebook located in **"./camera_calibration.ipynb"**.
 
 I start by preparing "object points", which will be the (x, y, z) coordinates of the chessboard corners in the world. Here I am assuming the chessboard is fixed on the (x, y) plane at z=0, such that the object points are the same for each calibration image.  Thus, `objp` is just a replicated array of coordinates, and `objpoints` will be appended with a copy of it every time I successfully detect all chessboard corners in a test image.  `imgpoints` will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection.  
 
 I then used the output `objpoints` and `imgpoints` to compute the camera calibration and distortion coefficients using the `cv2.calibrateCamera()` function.  I applied this distortion correction to the test image using the `cv2.undistort()` function and obtained this result: 
 
-![alt text][image1]
+![Undistorted image after camera calibration][image1]
 
 ### Pipeline (single images)
 
-#### 1. Provide an example of a distortion-corrected image.
+Implementation of pipeline can be found in **Advanced_Lane_Line_Finding.ipynb** notebook. In descritpion of pipeline steps I will reference cells from this notebook.
 
-To demonstrate this step, I will describe how I apply the distortion correction to one of the test images like this one:
-![alt text][image2]
+#### 1. Distortion correction
 
-#### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
+Distortion correction that was calculated via camera calibration has to be correctly applied to each image. It uses `cv2.undistort()` with loaded camera matrix and distortion coeffs parameters. This can be seen in 
 
-I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
+![Road image undistorted][image2]
 
-![alt text][image3]
+#### 2. Color and gradient threshold
 
-#### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
+We can combine two types off thresholds: color and gradient. 
+Gradient threshold can be obtained by running Sobel kernel over the image and finding gradients. There are 3 types of gradients that we explored: individual X and Y, magnitude and direction of the gradient. Result can be seen in image below.
 
-The code for my perspective transform includes a function called `warper()`, which appears in lines 1 through 8 in the file `example.py` (output_images/examples/example.py) (or, for example, in the 3rd code cell of the IPython notebook).  The `warper()` function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
+![alt text][image7]
+
+I've also applied binary mask on S channel after converting the image from RGB to HSL color space. I've used S channel since it works well on both yellow and white lines. On a image below is result of only s channel extracted and after applying threhsolds.
+
+![alt text][image8]
+
+I used a combination of color and gradient thresholds to generate a binary image seen below. I used following masking: `s_channel | x_sobel | (magnitude & direction)`.
+
+![alt text][image9]
+
+#### 3. Perspective transform.
+
+The code for my perspective transform includes a function called `perspective_transform()`, which appears in the 3rd code cell of the IPython notebook.  The `perspective_transform()` function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
 
 ```python
-src = np.float32(
-    [[(img_size[0] / 2) - 55, img_size[1] / 2 + 100],
-    [((img_size[0] / 6) - 10), img_size[1]],
-    [(img_size[0] * 5 / 6) + 60, img_size[1]],
-    [(img_size[0] / 2 + 55), img_size[1] / 2 + 100]])
-dst = np.float32(
-    [[(img_size[0] / 4), 0],
-    [(img_size[0] / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), 0]])
+cols, rows = combined.shape[::-1]
+top_limit = rows * 0.63
+down_limit = rows - 20
+src_point1 = [280, down_limit]
+src_point2 = [595, top_limit]
+src_point3 = [725, top_limit]
+src_point4 = [1125, down_limit]
+src = np.float32([src_point1, src_point2, src_point3, src_point4])
+
+dst_point1 = [250, rows]
+dst_point2 = [250, 0]
+dst_point3 = [1200, 0]
+dst_point4 = [1000, rows]
+dst = np.float32([dst_point1, dst_point2, dst_point3, dst_point4])
 ```
 
 This resulted in the following source and destination points:
 
 | Source        | Destination   | 
 |:-------------:|:-------------:| 
-| 585, 460      | 320, 0        | 
+| , 460      | 320, 0        | 
 | 203, 720      | 320, 720      |
 | 1127, 720     | 960, 720      |
 | 695, 460      | 960, 0        |
